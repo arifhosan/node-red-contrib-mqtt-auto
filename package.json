@@ -3,7 +3,8 @@
   "version": "1.0.3",
   "description": "Node group for NodeRed that maintains multiple MQTT connections and you can change connection credentials during runtime.",
   "dependencies": {
-    "mqtt": "^4.2.8"
+    "destr": "^2.0.3",
+    "mqtt": "^5.10.0"
   },
   "main": "mqtt-auto.js",
   "scripts": {

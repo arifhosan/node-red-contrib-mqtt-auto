@@ -1,17 +1,18 @@
-module.exports = function(RED) {
+module.exports = function (RED) {
     const mqtt = require("mqtt");
-    const fs   = require("fs");
+    const fs = require("fs");
+    const { destr } = require("destr");
 
 
     function ConnectionNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('close', function(done) {
+        node.on('close', function (done) {
             DynMQTT.closeClients();
             done();
         });
-        node.on('input', function(msg, send, done) {
-            let client = DynMQTT.createClient(msg,function(new_status){ 
+        node.on('input', function (msg, send, done) {
+            let client = DynMQTT.createClient(msg, function (new_status) {
                 node.status(new_status.summary);
                 node.send(new_status)
             })
@@ -20,9 +21,9 @@ module.exports = function(RED) {
     }
 
     function DisconnectNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('input', function(msg, send, done) {
+        node.on('input', function (msg, send, done) {
             let client = DynMQTT.getClient(msg.client_id)
             if (client) {
                 client.close();
@@ -34,12 +35,12 @@ module.exports = function(RED) {
     }
 
     function PublishNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('input', function(msg, send, done) {
+        node.on('input', function (msg, send, done) {
             let client = DynMQTT.getClient(msg.client_id);
             if (client && (client.status == "connected")) {
-                client.publish(msg.topic,msg.payload);
+                client.publish(msg.topic, msg.payload);
                 done();
             } else {
                 node.warn("Client not known or not connected - sending msg back for re-looping");
@@ -51,22 +52,22 @@ module.exports = function(RED) {
 
 
     function SubscribeNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('input', function(msg, send, done) {
+        node.on('input', function (msg, send, done) {
             let client = DynMQTT.getClient(msg.client_id);
             if (client) {
                 let topics = []
-                if (typeof msg.topic === 'array') 
+                if (typeof msg.topic === 'array')
                     topics = msg.topic
                 else
                     topics.push(msg.topic)
 
                 for (let t of topics) {
                     // -- actualTopic contains the real topic the message was received at (no wildards)
-                    client.subscribe(t,(actualTopic,message) => { 
+                    client.subscribe(t, (actualTopic, message) => {
                         send({
-                            "payload": JSON.parse(message.toString()),
+                            "payload": destr(message.toString()),
                             "client_id": client.client_id,
                             "topic": actualTopic
                         })
@@ -79,19 +80,19 @@ module.exports = function(RED) {
     }
 
     function StatusNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('input', function(msg, send, done) {
-                send({ "payload": DynMQTT.listClients()})
-                done();
+        node.on('input', function (msg, send, done) {
+            send({ "payload": DynMQTT.listClients() })
+            done();
         });
     }
 
 
     function UnsubscribeNode(config) {
-        RED.nodes.createNode(this,config);
+        RED.nodes.createNode(this, config);
         var node = this;
-        node.on('input', function(msg, send, done) {
+        node.on('input', function (msg, send, done) {
             let client = DynMQTT.getClient(msg.client_id);
             if (client) {
                 client.unsubscribe(msg.topic);
@@ -102,24 +103,24 @@ module.exports = function(RED) {
     }
 
     //--Backend class to maintain the MQTT clients
-    class DynMQTT{
+    class DynMQTT {
         static clients = {};
         static client_stats = {};
 
-        static findTopic(received,subscribtions) {
+        static findTopic(received, subscribtions) {
             for (let subscribed of subscribtions) {
-                let regex  = subscribed.replace(/\+/g,'[^\/]+')
-                regex = regex.replace(/\#/g,'.*')
-                regex = regex.replace(/\$/g,'\\$')
-                regex = regex.replace(/\//g,'\\/')
+                let regex = subscribed.replace(/\+/g, '[^\/]+')
+                regex = regex.replace(/\#/g, '.*')
+                regex = regex.replace(/\$/g, '\\$')
+                regex = regex.replace(/\//g, '\\/')
                 regex = '^' + regex + '$'
-            
+
                 if (received.match(regex) != null)
                     return subscribed
             }
             return false
         }
-        
+
         static closeClients() {
             for (const [id, client] of Object.entries(DynMQTT.clients))
                 client.close();
@@ -133,14 +134,14 @@ module.exports = function(RED) {
                 //ToDo: check health status of client
             } else {
                 console.info("Creating new client: " + client_id);
-                DynMQTT.clients[client_id] = new DynMQTT(client_id,config.payload,status_callback);
+                DynMQTT.clients[client_id] = new DynMQTT(client_id, config.payload, status_callback);
             }
             return DynMQTT.clients[client_id]
         }
 
         static listClients() {
             let ret = {};
-            
+
             for (const [id, client] of Object.entries(DynMQTT.clients)) {
                 ret[id] = { "status": client.status, "subscriptions": [] }
 
@@ -161,19 +162,19 @@ module.exports = function(RED) {
             }
         }
 
-        constructor(client_id,config,status_callback) {
-            this.client_id      = client_id;
-            this.host           = config.host;
-            this.user           = config.user;
-            this.password       = config.password;
-            this.key_path       = config.key  || false;
-            this.cert_path      = config.cert || false;
-            this.ca_path        = config.ca   || false;
-            this.reconnect_t    = config.reconnect || 0;
-            this.subscriptions  = {};
-            this.status         = false;
-            this.status_callback= status_callback;
-           
+        constructor(client_id, config, status_callback) {
+            this.client_id = client_id;
+            this.host = config.host;
+            this.user = config.user;
+            this.password = config.password;
+            this.key_path = config.key || false;
+            this.cert_path = config.cert || false;
+            this.ca_path = config.ca || false;
+            this.reconnect_t = config.reconnect || 0;
+            this.subscriptions = {};
+            this.status = false;
+            this.status_callback = status_callback;
+
             this.change_status('initiated');
 
             if (this.cert_path) {
@@ -182,10 +183,10 @@ module.exports = function(RED) {
                     rejectUnauthorized: false,
                     key: fs.readFileSync(this.key_path),
                     cert: fs.readFileSync(this.cert_path),
-                    ca: [ fs.readFileSync(this.ca_path) ],
+                    ca: [fs.readFileSync(this.ca_path)],
                     reconnectPeriod: this.reconnect_t
                 }
-                this.connection     = mqtt.connect('mqtts://' + this.host, options);
+                this.connection = mqtt.connect('mqtts://' + this.host, options);
             } else {
                 const options = {
                     clientId: this.client_id,
@@ -193,7 +194,7 @@ module.exports = function(RED) {
                     password: this.password,
                     reconnectPeriod: this.reconnect_t
                 }
-                this.connection     = mqtt.connect('mqtt://' + this.host, options);
+                this.connection = mqtt.connect('mqtt://' + this.host, options);
             }
 
             /*Client events*/
@@ -204,7 +205,7 @@ module.exports = function(RED) {
             this.connection.on('error', (err) => {
                 this.change_status("error");
                 console.error("error on MQTT connection: " + err);
-                this.status_callback({fill:"red",shape:"dot",text:err});
+                this.status_callback({ summary: { fill: "red", shape: "dot", text: err } });
             });
 
             this.connection.on('reconnect', () => {
@@ -226,9 +227,9 @@ module.exports = function(RED) {
             });
 
             this.connection.on('message', (topic, message) => {
-                let subTopic = DynMQTT.findTopic(topic,Object.keys(this.subscriptions))
-                if (subTopic) { 
-                    this.subscriptions[subTopic](topic,message);
+                let subTopic = DynMQTT.findTopic(topic, Object.keys(this.subscriptions))
+                if (subTopic) {
+                    this.subscriptions[subTopic](topic, message);
                 } else {
                     console.error("Rec msg w/o subscription on " + topic);
                 }
@@ -239,17 +240,19 @@ module.exports = function(RED) {
         change_status(status) {
             console.debug(this.client_id + ": " + this.status + " -> " + status);
 
-            let ret = { "mqtt_change" : {
-                "client_id"     : this.client_id,
-                "status_last"   : this.status,
-                "status_new"    : status
-            } }
+            let ret = {
+                "mqtt_change": {
+                    "client_id": this.client_id,
+                    "status_last": this.status,
+                    "status_new": status
+                }
+            }
 
             // --- Take care of the previous status (only if it is set)
             if (this.status) {
                 if (DynMQTT.client_stats.hasOwnProperty(this.status))
                     DynMQTT.client_stats[this.status]--;
-                else 
+                else
                     DynMQTT.client_stats[this.status] = 0;
             }
 
@@ -263,24 +266,24 @@ module.exports = function(RED) {
                     DynMQTT.client_stats[this.status]++;
                 else
                     DynMQTT.client_stats[this.status] = 1;
-            }                    
+            }
 
             let txt = "";
-            for (const [name, count] of Object.entries(DynMQTT.client_stats)) 
+            for (const [name, count] of Object.entries(DynMQTT.client_stats))
                 if (parseInt(count) > 0)
                     txt = txt + name + ":" + parseInt(count) + " ";
                 else
                     delete DynMQTT.client_stats[name]; // -- auto-sanitize 
-            ret.summary = {fill:"green",shape:"dot",text:txt};
+            ret.summary = { fill: "green", shape: "dot", text: txt };
             this.status_callback(ret);
         }
 
-        subscribe(topic,callback) {
+        subscribe(topic, callback) {
             if (this.subscriptions.hasOwnProperty(topic)) {
                 //console.log("Already subscribed");
             } else {
                 this.connection.subscribe(topic, (err, result) => {
-                    if (!err){
+                    if (!err) {
                         console.info("Subscribed to:" + result[0].topic);
                         this.subscriptions[topic] = callback;
                         this.change_status(this.status);
@@ -293,7 +296,7 @@ module.exports = function(RED) {
         unsubscribe(topic) {
             if (this.subscriptions.hasOwnProperty(topic)) {
                 console.info("Removing subscription to:" + topic);
-                this.connection.unsubscribe(topic,(err) => {
+                this.connection.unsubscribe(topic, (err) => {
                     if (err)
                         console.error(err);
                     this.change_status(this.status);
@@ -304,18 +307,18 @@ module.exports = function(RED) {
             }
         }
 
-        publish(topic,payload) {
+        publish(topic, payload) {
             let send_payload = payload; // covers for payloads of type Buffer (Binary)
 
-            if(typeof payload == "object") 
-                send_payload=JSON.stringify(payload);
-            else if(typeof payload == "number") 
-                send_payload=payload.toString(10);
+            if (typeof payload == "object")
+                send_payload = JSON.stringify(payload);
+            else if (typeof payload == "number")
+                send_payload = payload.toString(10);
 
-            this.connection.publish(topic,send_payload);
+            this.connection.publish(topic, send_payload);
         }
 
-        close(){
+        close() {
             this.connection.end();
             this.subscriptions = {};
             delete DynMQTT.clients[this.client_id];
@@ -323,10 +326,10 @@ module.exports = function(RED) {
 
     }
 
-    RED.nodes.registerType("mqtt-auto-connect",ConnectionNode);
-    RED.nodes.registerType("mqtt-auto-disconnect",DisconnectNode);
-    RED.nodes.registerType("mqtt-auto-publish",PublishNode);
-    RED.nodes.registerType("mqtt-auto-subscribe",SubscribeNode);
-    RED.nodes.registerType("mqtt-auto-unsubscribe",UnsubscribeNode);
-    RED.nodes.registerType("mqtt-auto-status",StatusNode);
+    RED.nodes.registerType("mqtt-auto-connect", ConnectionNode);
+    RED.nodes.registerType("mqtt-auto-disconnect", DisconnectNode);
+    RED.nodes.registerType("mqtt-auto-publish", PublishNode);
+    RED.nodes.registerType("mqtt-auto-subscribe", SubscribeNode);
+    RED.nodes.registerType("mqtt-auto-unsubscribe", UnsubscribeNode);
+    RED.nodes.registerType("mqtt-auto-status", StatusNode);
 }
