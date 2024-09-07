@@ -1,5 +1,26 @@
 # Changelog
 
+## [v2.1.0] - 2024-09-05
+
+### Added
+
+* feat: add mqtt rap & rh options
+
+
+### Changed
+
+* ref: extract DynMQTT class
+* chore: add comments
+* chore: improve log
+* ref: use async method for publish, subscribe & unsubscribe
+* chore: add comments
+* chore: improve log
+
+### Fixed
+
+* fix: subsciptions topic declaration
+
+
 ## [v2.0.0] - 2024-09-05
 
 
