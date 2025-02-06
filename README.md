@@ -53,4 +53,14 @@ msg.client_id = "client_id";
 msg.topic = "topic";
 ```
 
-...
+### mqtt-auto-publish
+
+<img src="img/publish.png" width="200" alt="Conectar">
+
+```
+msg.client_id = "client_id";
+msg.paydload = "my_message";
+msg.topic = "topic";
+msg.options={}; # 
+```
+See [Mqtt documentation](https://github.com/mqttjs/MQTT.js?tab=readme-ov-file#mqttclientpublishtopic-message-options-callback)

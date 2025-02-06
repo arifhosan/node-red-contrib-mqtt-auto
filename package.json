@@ -1,6 +1,6 @@
 {
   "name": "@malysus/node-red-contrib-mqtt-auto",
-  "version": "2.1.0",
+  "version": "2.2.0-pre.1",
   "description": "Node group for NodeRed that maintains multiple MQTT connections and you can change connection credentials during runtime.",
   "dependencies": {
     "destr": "^2.0.3",
@@ -20,7 +20,7 @@
   ],
   "engines": {
     "node": ">=20.0.0"
-  },        
+  },
   "node-red": {
     "version": ">=4.0.0",
     "nodes": {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.2.0] - 2025-02-05
+
+### Added
+
+* feat: support mqtt publish options
+
 ## [v2.1.0] - 2024-09-05
 
 ### Added

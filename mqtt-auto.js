@@ -41,7 +41,8 @@ const main = function (RED) {
         var node = this;
         node.on('input', async function (msg, send, done) {
             let client = DynMQTT.getClient(msg.client_id);
-            if (client && await client.publish(msg.topic, msg.payload)) {
+            let options = msg.options || {};
+            if (client && await client.publish(msg.topic, msg.payload, options)) {
                 done();
             }
             else {
@@ -63,7 +64,7 @@ const main = function (RED) {
                 let topics = [msg.topic].flat()
                 for (let t of topics) {
                     // -- actualTopic contains the real topic the message was received at (no wildards)
-                    await client.subscribe(t, function(actualTopic, message) {
+                    await client.subscribe(t, function (actualTopic, message) {
                         send({
                             "payload": destr(message.toString()),
                             "client_id": client.client_id,

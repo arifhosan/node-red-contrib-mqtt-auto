@@ -240,7 +240,7 @@ module.exports = class DynMQTT {
         } else console.warn(`MQTT: ${topic} not unsubscribed`);
     }
 
-    async publish(topic, payload) {
+    async publish(topic, payload, options) {
         if (this.status === "connected") {
             let send_payload = payload; // covers for payloads of type Buffer (Binary)
 
@@ -249,7 +249,7 @@ module.exports = class DynMQTT {
             else if (typeof payload == "number")
                 send_payload = payload.toString(10);
 
-            await this.connection.publishAsync(topic, send_payload);
+            await this.connection.publishAsync(topic, send_payload, options);
             return true;
         }
         return false;
