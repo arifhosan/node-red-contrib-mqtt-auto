@@ -242,13 +242,8 @@ module.exports = class DynMQTT {
 
     async publish(topic, payload, options) {
         if (this.status === "connected") {
-            let send_payload = payload; // covers for payloads of type Buffer (Binary)
-
-            if (typeof payload == "object")
-                send_payload = JSON.stringify(payload);
-            else if (typeof payload == "number")
-                send_payload = payload.toString(10);
-
+            let send_payload = JSON.stringify(payload);
+            
             await this.connection.publishAsync(topic, send_payload, options);
             return true;
         }
