@@ -1,6 +1,10 @@
-# node-red-contrib-mqtt-auto: FORK of [node-red-contrib-mqtt-auto](https://github.com/eltonssilva/node-red-contrib-mqtt-auto) to integrate fixes
+# node-red-contrib-mqtt-auto: FORK of [node-red-contrib-mqtt-auto](https://github.com/malys/node-red-contrib-mqtt-auto) to integrate fixes
+## which is a FORK of [node-red-contrib-mqtt-auto](https://github.com/eltonssilva/node-red-contrib-mqtt-auto)
 
-This node is intended to facilitate connection and change of connection credentials at runtime.
+This node is intended to facilitate connection and change of connection credentials at runtime. <br>
+
+I fixed one small issue where publishing a string payload was not working as intended.
+
 
 ## mqtt-auto-connect
 
@@ -59,8 +63,8 @@ msg.topic = "topic";
 
 ```
 msg.client_id = "client_id";
-msg.paydload = "my_message";
+msg.payload = "my_message";
 msg.topic = "topic";
-msg.options={}; # 
+msg.options={}; #can be empty
 ```
 See [Mqtt documentation](https://github.com/mqttjs/MQTT.js?tab=readme-ov-file#mqttclientpublishtopic-message-options-callback)
